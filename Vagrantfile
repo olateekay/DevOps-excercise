@@ -1,28 +1,60 @@
 # -*- mode: ruby -*-
-# vi: set ft=ruby :
+NUMBER_OF_WEBSERVERS = 2
+CPU = 2
+MEMORY = 256
+VM_VERSION= "ubuntu/bionic64"
+VAGRANT_VM_PROVIDER = "virtualbox"
 
-# Every Vagrant development environment requires a box. You can search for
-# boxes at https://atlas.hashicorp.com/search.
-BOX_IMAGE = "bento/ubuntu-16.04"
-NODE_COUNT = 2
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-Vagrant.configure("2") do |config|
-  config.vm.define "master" do |subconfig|
-    subconfig.vm.box = BOX_IMAGE
-    subconfig.vm.hostname = "master"
-    subconfig.vm.network :private_network, ip: "10.0.0.10"
-  end
-  
-  (1..NODE_COUNT).each do |i|
-    config.vm.define "node#{i}" do |subconfig|
-      subconfig.vm.box = BOX_IMAGE
-      subconfig.vm.hostname = "node#{i}"
-      subconfig.vm.network :private_network, ip: "10.0.0.#{i + 10}"
+  groups = {
+    "webservers" => ["web[1:#{NUMBER_OF_WEBSERVERS}]"],
+    "loadbalancers" => ["load_balancer"],
+    "all_groups:children" => ["webservers","loadbalancers"]
+  }
+
+  # create some web servers
+  # https://docs.vagrantup.com/v2/vagrantfile/tips.html
+  (1..NUMBER_OF_WEBSERVERS).each do |i|
+    config.vm.define "web#{i}" do |node|
+        node.vm.box = VM_VERSION
+        node.vm.hostname = "web#{i}"
+        node.vm.network :private_network, ip: "10.0.15.2#{i}"
+        node.vm.network "forwarded_port", guest: 80, host: "808#{i}"
+        node.vm.provider VAGRANT_VM_PROVIDER do |vb|
+          vb.memory = MEMORY
+        end
+
+    # Only execute once the Ansible provisioner,
+    # when all the machines are up and ready.
+
+      if i == NUMBER_OF_WEBSERVERS
+          node.vm.provision "ansible" do |ansible|
+            ansible.playbook = "pb_web.yml"
+            ansible.sudo = true
+            ansible.limit = "all"
+            ansible.groups = groups
+          end
+        end
+
+      end
     end
-  end
 
-  # Install avahi on all machines  
-  config.vm.provision "shell", inline: <<-SHELL
-    apt-get install -y avahi-daemon libnss-mdns
-  SHELL
-end 
+
+    # create load balancer
+    config.vm.define "load_balancer" do |lb_config|
+        lb_config.vm.box = VM_VERSION
+        lb_config.vm.hostname = "lb"
+        lb_config.vm.network :private_network, ip: "10.0.15.11"
+        lb_config.vm.network "forwarded_port", guest: 80, host: 8011
+        lb_config.vm.provider VAGRANT_VM_PROVIDER do |vb|
+          vb.memory = MEMORY
+        end
+        lb_config.vm.provision "ansible" do |ansible|
+          ansible.playbook = "pb_lb.yml"
+          ansible.sudo = true
+          ansible.groups = groups
+        end
+    end
+end
