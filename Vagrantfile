@@ -21,7 +21,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         node.vm.box = VM_VERSION
         node.vm.hostname = "web#{i}"
         node.vm.network :private_network, ip: "10.0.15.2#{i}"
-        node.vm.network "forwarded_port", guest: 80, host: "808#{i}"
+        node.vm.network "forwarded_port", guest: 80, host: "124#{i}"
         node.vm.provider VAGRANT_VM_PROVIDER do |vb|
           vb.memory = MEMORY
         end
@@ -30,9 +30,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # when all the machines are up and ready.
 
       if i == NUMBER_OF_WEBSERVERS
-          node.vm.provision "ansible" do |ansible|
-            ansible.playbook = "pb_web.yml"
-            ansible.sudo = true
+          config.vm.provision "ansible_local" do |ansible|
+            ansible.playbook = "playbook_web.yml"
             ansible.limit = "all"
             ansible.groups = groups
           end
@@ -51,9 +50,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         lb_config.vm.provider VAGRANT_VM_PROVIDER do |vb|
           vb.memory = MEMORY
         end
-        lb_config.vm.provision "ansible" do |ansible|
-          ansible.playbook = "pb_lb.yml"
-          ansible.sudo = true
+        lb_config.vm.provision "ansible_local" do |ansible|
+          ansible.playbook = "playbook_lb.yml"
           ansible.groups = groups
         end
     end

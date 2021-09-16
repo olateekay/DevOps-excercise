@@ -1,6 +1,6 @@
 ---
 - hosts: webservers
-  sudo: True
+  become_method: sudo
   roles:
     - common
     - web
