@@ -1,7 +1,7 @@
 # DevOps-excercise
 Building a loadbalancer and webservers infrastructure in vagrant using Ansible as a config management tool.
 
-**This documentation aims to show a step by step method to implementing an NGINX load balancer and NGINX webservers infrastructure in vagrant using ansible as a configuration management tool.**
+**This documentation aims to show how to use Ansible and Vagrant to build a load balancer, behind which runs two nginx applications which returns a simple hello world application written in python3**
 
 **Vagrant** is a tool that helps to automate the creation and management of virtual machines.
 
@@ -43,8 +43,7 @@ Ansible playbook, playbook_web provisions the created web servers by installing,
 
 Ansible playbook ,playbook_lb provisions the load balancer and also updates the config file for load balancer based on _number of web nodes created. It uses facts from ansible to get the ip address of the hosts and add them in load balancer config of nginx.
 
-
-You can now call `vagrant up` on the terminal
+Clone this project, then run `vagrant up` on the terminal
 
 This will start the VM, and run the provisioning playbook. To re-run a playbook on an existing VM, just run:
 
@@ -69,6 +68,7 @@ Restart the python server and go to `http://localhost:<forwarded_port of each VM
 **Challenges**
 - I had challenges running the playbooks from the Vagrantfile, Error: connection refused 
 - Nginx not getting restarted via ansible: ansible is somehow skipping the restart nginx command
+- I could not come up with an automated test to test the app and loadbalancer
 
 **Remarks**
 
