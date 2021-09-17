@@ -43,10 +43,35 @@ Ansible playbook, playbook_web provisions the created web servers by installing,
 
 Ansible playbook ,playbook_lb provisions the load balancer and also updates the config file for load balancer based on _number of web nodes created. It uses facts from ansible to get the ip address of the hosts and add them in load balancer config of nginx.
 
-The applications for running the "hello world" test will be written in python3.
 
 You can now call `vagrant up` on the terminal
 
+This will start the VM, and run the provisioning playbook. To re-run a playbook on an existing VM, just run:
 
+`vagrant provision`
+
+
+The application for running the "hello world" test is in python3.
+We can run ` $ python3 -m http.server <forwarded_port> ` to start up a web server that serves the directory in which the command was ran.
+create an index.html file  in the home directory of the VMs and type `Hello,World!` in it. Save and close the file.
+
+Restart the python server and go to `http://localhost:<forwarded_port of each VM>` you should see Hello,World! on your browser.
+
+*N.B* To set python 3 as default on the ubuntu VM's;
+    Open your .bashrc file on each VM, `vi ~/.bashrc.`
+    Type `alias python=python3` on to a new line at the top of the file then save and close the file with `:wq!`
+    Then, back at your command line type `source ~/.bashrc` Now your alias should be permanent.
+
+**Making nginx idempotent**
+
+- By using ansible apt module to install the nginx server , this step is idempotent by default as apt-get will not install nginx again once it's installed once
+
+**Challenges**
+- I had challenges running the playbooks from the Vagrantfile, Error: connection refused 
+- Nginx not getting restarted via ansible: ansible is somehow skipping the restart nginx command
+
+**Remarks**
+
+ I am quite familiar with ansible, but this is first time I used Vagrant and I thoroughly enjoyed learning it. 
 
 
