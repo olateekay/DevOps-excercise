@@ -19,82 +19,30 @@ To verify that Vagrant is installed, check for the vagrant version installed:
 Vagrant 2.2.18
 ```
 
-Next stop is to create 3 VM's.First create an empty directory somewhere and `cd` into it.
+Our aim is to 
+- provisiom 3 VMs built using the following vagrant box:https://app.vagrantup.com/ubuntu/boxes/bionic64
+- To have the VMs allow the vagrant user and users in the admin group to sudo without a password
+- Have Webservers and load balancer running nginx
+- Have a Simple ‘Hello World’ application deployed to both webservers (written in python3)
+- Have the Solution be idempotent
 
-Our aim is to create multiple VM's with a single Vagrantfile
+The VagrantFile in this project contains configurations to provision a loadbalancer and 2 webservers.
+ansible_local vagrant provisioner is being used to run the playbooks which will install NGINX on each machine.
 
-*A Vagrantfile is a file that houses the configurations to create a VM or multi VM's*
+**Ansible roles:**
+*common* - holds tasks and handlers which is common to both load balancer and web server. It installs nginx 
 
-Create a Vagrantfile;
+*loadbalancer* - task and handlers for loadbalancers. It also has config template for ngnix loadbalancer setup.
 
-`vi Vagrantfile`
+*web* - task and handlers for web servers. It also has sample html and config template for nginx webserver setup.
 
-Copy and paste this content into the file
+Ansible playbook, playbook_web provisions the created web servers by installing, nginx and copy index.html template to webnodes. 
 
-```
-# -*- mode: ruby -*-
-# vi: set ft=ruby :
+Ansible playbook ,playbook_lb provisions the load balancer and also updates the config file for load balancer based on _number of web nodes created. It uses facts from ansible to get the ip address of the hosts and add them in load balancer config of nginx.
 
-# Every Vagrant development environment requires a box. You can search for
-# boxes at https://atlas.hashicorp.com/search.
-BOX_IMAGE = "ubuntu/bionic64"
-NODE_COUNT = 2
+The applications for running the "hello world" test will be written in python3.
 
-Vagrant.configure("2") do |config|
-  config.vm.define "master" do |subconfig|
-    subconfig.vm.box = BOX_IMAGE
-    subconfig.vm.hostname = "master"
-    subconfig.vm.network :private_network, ip: "10.0.0.10"
-  end
-  
-  (1..NODE_COUNT).each do |i|
-    config.vm.define "node#{i}" do |subconfig|
-      subconfig.vm.box = BOX_IMAGE
-      subconfig.vm.hostname = "node#{i}"
-      subconfig.vm.network :private_network, ip: "10.0.0.#{i + 10}"
-    end
-  end
+You can now call `vagrant up` on the terminal
 
-  # Install avahi on all machines  
-  config.vm.provision "shell", inline: <<-SHELL
-    apt-get install -y avahi-daemon libnss-mdns
-  SHELL
-end
-```
 
-This Vagrantfile will create 3 VMs (master, node1, node2).
-
-In the Vagrantfile, vagrantbox has been declared as a constant , BOX_IMAGE.
-
-This configuration in the Vagrantfile;
-
-`subconfig.vm.hostname = "a.host.name"`
-
-gives each VM a unique hostname.
-
-Next, we need a way of getting the IP address for a hostname. For this, we’ll use DNS – or mDNS to be more precise.
-
-On Ubuntu, mDNS is provided by Avahi. To install Avahi on each node, we’ll use Vagrant’s provisioning feature.
-
-Before the last end in the Vagrantfile, 
-
-```
-config.vm.provision "shell", inline: <<-SHELL
-  apt-get install -y avahi-daemon libnss-mdns
-SHELL
-```
-
-This will call `apt-get install -y avahi-daemon libnss-mdns` on every VM.
-
-Last, we need to connect the VMs through a private network.
-
-For each VM, we need to add a config like this (where each VM will have a different ip address):
-
-`subconfig.vm.network :private_network, ip: "10.0.0.10"`
-
-You can now call `vagrant up` and then ssh into any of the VMs:
-
-To ssh into any of the VMs, just specify its name. For example, to ssh into `node1`, call:
-
-`> vagrant ssh node1`
 
