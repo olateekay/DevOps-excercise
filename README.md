@@ -29,19 +29,28 @@ Our aim is to
 - Have a Simple ‘Hello World’ application deployed to both webservers (written in python3)
 - Have the Solution be idempotent
 
-The VagrantFile in this project contains configurations to provision a loadbalancer and 2 webservers.
-ansible_local vagrant provisioner is being used to run the playbooks which will install NGINX on each machine.
+# Solution
 
-**Ansible roles:**
-*common* - holds tasks and handlers which is common to both load balancer and web server. It installs nginx 
+I Adopted a KISS approach ( keep it simple stupid ). The host box only has vagrant installed and therefore the ansible_local vagrant provisioner has been chosen.
 
-*loadbalancer* - task and handlers for loadbalancers. It also has config template for ngnix loadbalancer setup.
+This will install the latest version of Ansible on each host and run the playbook on the host machine.
 
-*web* - task and handlers for web servers. It also has sample html and config template for nginx webserver setup.
+In order to keep the solution simple no existing roles have been included, as most roles tend to do "too much" and don't solve this specific problem elegantly.
+All ip addresses have been hardcoded in the vagrant file, although are dynamic when running from the inventory file making it easy to move from production to staging. 
 
-Ansible playbook, playbook_web provisions the created web servers by installing, nginx and copy index.html template to webnodes. 
+As this is a Vagrant box, for this test environment security has not been considered. There are no firewalls / backup scripts for the box.
 
-Ansible playbook ,playbook_lb provisions the load balancer and also updates the config file for load balancer based on _number of web nodes created. It uses facts from ansible to get the ip address of the hosts and add them in load balancer config of nginx.
+If this were to be moved from a test environment to a production product it would be strongly recommended to secure this system further 
+
+Testing the application will be via the shell provisioner. 
+
+The applications for running the "hello world" is written in python3. 
+
+GIT has been used to version control the scripts
+
+Everything is installed under sudo which isn't best practice but has been done for speed.
+
+
 
 Clone this project, then run `vagrant up` on the terminal
 
@@ -50,25 +59,14 @@ This will start the VM, and run the provisioning playbook. To re-run a playbook 
 `vagrant provision`
 
 
-The application for running the "hello world" test is in python3.
-We can run ` $ python3 -m http.server <forwarded_port> ` to start up a web server that serves the directory in which the command was ran.
-create an index.html file  in the home directory of the VMs and type `Hello,World!` in it. Save and close the file.
-
-Restart the python server and go to `http://localhost:<forwarded_port of each VM>` you should see Hello,World! on your browser.
-
-*N.B* To set python 3 as default on the ubuntu VM's;
-    Open your .bashrc file on each VM, `vi ~/.bashrc.`
-    Type `alias python=python3` on to a new line at the top of the file then save and close the file with `:wq!`
-    Then, back at your command line type `source ~/.bashrc` Now your alias should be permanent.
-
 **Making nginx idempotent**
 
 - By using ansible apt module to install the nginx server , this step is idempotent by default as apt-get will not install nginx again once it's installed once
 
 **Challenges**
-- I had challenges running the playbooks from the Vagrantfile, Error: connection refused 
-- Nginx not getting restarted via ansible: ansible is somehow skipping the restart nginx command
-- I could not come up with an automated test to test the app and loadbalancer
+- I had challenges running the playbooks from the Vagrantfile, Error: connection refused . i was able to fix that in the inventory file named vagrant-hosts
+- Nginx not getting restarted via ansible: ansible is somehow skipping the restart nginx command. it was a connection error this was fixed in the inventory file also.
+
 
 **Remarks**
 
