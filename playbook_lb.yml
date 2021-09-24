@@ -1,6 +1,44 @@
----
-- hosts: loadbalancers
+- hosts: loadbalancer
+  gather_facts: True
+  become: yes
   become_method: sudo
-  roles:
-    - common
-    - lb
+
+  handlers:
+
+  - name: restart nginx
+    action: service name=nginx state=restarted
+
+  vars:
+    application_servers: "{{ groups['application-servers'] }}"
+
+  tasks:
+
+
+  - name: install nginx
+    apt:
+      name: nginx
+      state: present
+    tags:
+       - install_nginx
+
+  - name: install nginx upstreams to hello-world python app
+    template:
+      src: templates/etc/nginx/conf.d/hello-world.conf
+      dest: '/etc/nginx/conf.d/hello-world.conf'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+
+  - name: enable default site pointing to hello-world python app
+    template:
+      src: 'templates/etc/nginx/sites-available/default'
+      dest: '/etc/nginx/sites-available/default'
+      owner: 'root'
+      group: 'root'
+      mode: '0644'
+    notify: restart nginx
+    tags:
+      - install_proxy
+
+
+

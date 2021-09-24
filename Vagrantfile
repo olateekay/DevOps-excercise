@@ -1,58 +1,50 @@
 # -*- mode: ruby -*-
-NUMBER_OF_WEBSERVERS = 2
-CPU = 2
-MEMORY = 256
-VM_VERSION= "ubuntu/bionic64"
-VAGRANT_VM_PROVIDER = "virtualbox"
+# vi: set ft=ruby :
 
-VAGRANTFILE_API_VERSION = "2"
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+Vagrant.configure("2") do |config|
 
-  groups = {
-    "webservers" => ["web[1:#{NUMBER_OF_WEBSERVERS}]"],
-    "loadbalancers" => ["load_balancer"],
-    "all_groups:children" => ["webservers","loadbalancers"]
-  }
+ config.vm.box = "ubuntu/bionic64"
 
-  # create some web servers
-  # https://docs.vagrantup.com/v2/vagrantfile/tips.html
-  (1..NUMBER_OF_WEBSERVERS).each do |i|
-    config.vm.define "web#{i}" do |node|
-        node.vm.box = VM_VERSION
-        node.vm.hostname = "web#{i}"
-        node.vm.network :private_network, ip: "10.0.15.2#{i}"
-        node.vm.network "forwarded_port", guest: 80, host: "124#{i}"
-        node.vm.provider VAGRANT_VM_PROVIDER do |vb|
-          vb.memory = MEMORY
-        end
-
-    # Only execute once the Ansible provisioner,
-    # when all the machines are up and ready.
-
-      if i == NUMBER_OF_WEBSERVERS
-          config.vm.provision "ansible_local" do |ansible|
-            ansible.playbook = "playbook_web.yml"
-            ansible.limit = "all"
-            ansible.groups = groups
-          end
-        end
-
-      end
-    end
+	  (1..2).each do |i|
+		  config.vm.define "web-app-server-#{i}" do |web|
+		    web.vm.hostname = "web-app-server-#{i}"
+		    web.vm.network :private_network, ip: "192.168.100.10#{i}"
+            web.vm.network "forwarded_port", guest: 80, host: "124#{i}"
+		end
+	  end
 
 
-    # create load balancer
-    config.vm.define "load_balancer" do |lb_config|
-        lb_config.vm.box = VM_VERSION
-        lb_config.vm.hostname = "lb"
-        lb_config.vm.network :private_network, ip: "10.0.15.11"
-        lb_config.vm.network "forwarded_port", guest: 80, host: 8011
-        lb_config.vm.provider VAGRANT_VM_PROVIDER do |vb|
-          vb.memory = MEMORY
-        end
-        lb_config.vm.provision "ansible_local" do |ansible|
-          ansible.playbook = "playbook_lb.yml"
-          ansible.groups = groups
-        end
-    end
+	  config.vm.define "loadbalancer" do |web|
+            # Configure load balancer
+	    web.vm.network :private_network, ip: "192.168.100.100"
+		web.vm.network "forwarded_port", guest: 80, host: 8011
+	    web.vm.provision "ansible_local" do |ansible|
+			ansible.verbose = "v"
+			ansible.playbook = "playbook_lb.yml"
+			ansible.inventory_path = "vagrant-hosts"
+			ansible.limit = "loadbalancer"
+	   	 end
+	    web.vm.provision "shell", inline: "nc 192.168.100.100 80 &> /dev/null; if [ $? -eq 0 ]; then echo 'Web Server Up'; else echo 'Web Server Down'; fi"
+
+	    ## Configure app servers
+	    web.vm.provision "ansible_local" do |ansible|
+				ansible.verbose = "v"
+				ansible.playbook = "node-setup.yml"
+				ansible.limit = "application-servers"
+				ansible.inventory_path = "vagrant-hosts"
+		 end
+	    web.vm.provision "ansible_local" do |ansible|
+				ansible.verbose = "v"
+				ansible.playbook = "playbook_web.yml"
+				ansible.limit = "application-servers"
+				ansible.inventory_path = "vagrant-hosts"
+				ansible.extra_vars = {
+					current_user: ENV['USER']
+				}
+		 end
+
+	    web.vm.provision "shell", inline: "echo Making three requests to the loadbalancer on 192.168.100.100"
+	    web.vm.provision "shell", inline: "for i in {1..3}; do curl -sS http://192.168.100.100; done"
+	  end
+
 end

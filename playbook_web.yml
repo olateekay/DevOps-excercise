@@ -1,6 +1,30 @@
----
-- hosts: webservers
+- hosts: application-servers
+  gather_facts: True
+  become: yes
   become_method: sudo
-  roles:
-    - common
-    - web
+
+  handlers:
+
+  - name: start hello world
+    shell:  python3 hello.py
+   
+
+  tasks:
+
+
+
+  - name: make /srv/opt/ folder with permissions for www-data
+    file: path="/srv/opt/" state=directory recurse=true owner='www-data' group='www-data'
+    tags:
+      - install_hello_world_application
+
+  - name: run hello world application
+    template: src=srv/opt/hello.py dest=/srv/opt/hello.py
+    
+  
+
+ 
+
+
+
+# vim:ft=ansible:

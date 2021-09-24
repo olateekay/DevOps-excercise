@@ -1,0 +1,11 @@
+[application-servers]
+web-app-server-1 ansible_ssh_host=192.168.100.101 ansible_ssh_user=vagrant ansible_ssh_private_key_file=.vagrant/machines/web-app-server-1/virtualbox/private_key
+web-app-server-2 ansible_ssh_host=192.168.100.102 ansible_ssh_user=vagrant ansible_ssh_private_key_file=.vagrant/machines/web-app-server-2/virtualbox/private_key
+
+
+[loadbalancer]
+loadbalancer ansible_ssh_host=192.168.100.100 ansible_ssh_user=vagrant ansible_ssh_private_key_file=.vagrant/machines/loadbalancer/virtualbox/private_key
+
+
+[all:vars]
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
